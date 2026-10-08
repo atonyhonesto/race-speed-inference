@@ -23,25 +23,21 @@ A model that answers in 8 ms is no use if the system around it takes 40. A model
 ## How a lap flows through it
 
 ```mermaid
-flowchart LR
-    A["📡 Telemetry frame<br/>0 ms"] --> B{"Features<br/>complete?"}
-    B -- no --> F
-    B -- yes --> C{"Inside training<br/>envelope?"}
-    C -- no --> F
-    C -- yes --> D["⚡ Edge inference<br/>hard timeout ≤10 ms"]
-    D -- timeout --> F
-    D --> E{"Confidence gate<br/>≤12 ms"}
-    E -- "≥ 0.85" --> P["✅ PRIMARY<br/>model's call"]
-    E -- "0.70–0.85" --> V["🟡 ADVISORY<br/>fallback call + model shown"]
+flowchart TB
+    A["📡 Telemetry frame arrives · 0 ms"] --> B{"Features complete?"}
+    B -- yes --> C{"Inside training envelope?"}
+    C -- yes --> D["⚡ Edge inference · hard timeout ≤ 10 ms"]
+    D -- answered --> E{"🎯 Confidence gate · ≤ 12 ms"}
+    E -- "≥ 0.85" --> P["✅ PRIMARY: model's call"]
+    E -- "0.70 – 0.85" --> V["🟡 ADVISORY: fallback call, model shown alongside"]
     E -- "< 0.70" --> F
+    B -- "no: sensor dropout" --> F
+    C -- "no: out of distribution" --> F
+    D -- "timeout" --> F
     V --> F
-    F["🛟 Fallback chain"] --> R["1 · Rules"]
-    R -- not covered --> K["2 · Cached call<br/>(decays per lap)"]
-    K -- expired --> H["3 · Crew chief<br/>with context"]
-    P --> W["🖥️ Pit wall<br/>≤25 ms + audit log"]
-    R --> W
-    K --> W
-    H --> W
+    F["🛟 Fallback chain: 1 · rules → 2 · cached call (decays per lap) → 3 · crew chief with context"]
+    P --> W["🖥️ Pit wall · ≤ 25 ms · every call written to the audit log"]
+    F --> W
 ```
 
 ## From article to code
